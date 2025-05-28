@@ -23,8 +23,9 @@ const report = require('./routes/report');
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://emp-health-frontend.vercel.app/'
+  'https://emp-health-frontend.vercel.app'
 ];
+
 
 // Load environment variables
 dotenv.config();
@@ -40,6 +41,7 @@ connectDB();
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log("🌍 Incoming origin:", origin);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -48,6 +50,7 @@ app.use(cors({
   },
   credentials: true
 }));
+
 
 // Middleware
 app.use(helmet());
