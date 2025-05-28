@@ -21,11 +21,12 @@ const dr = require('./routes/doctor');
 const Appointment = require('./models/Appointment');
 const report = require('./routes/report');
 
+const mongoose = require('mongoose'); // Add mongoose for schema/model
+
 const allowedOrigins = [
   'http://localhost:3000',
   'https://emp-health-frontend.vercel.app'
 ];
-
 
 // Load environment variables
 dotenv.config();
@@ -51,7 +52,6 @@ app.use(cors({
   credentials: true
 }));
 
-
 // Middleware
 app.use(helmet());
 app.use(express.json());
@@ -63,7 +63,58 @@ verifyEmailConnection();
 // Static files
 app.use('/uploads', express.static('uploads'));
 
-// Routes
+// Poll Schema & Model
+const choiceSchema = new mongoose.Schema({
+  text: { type: String, required: true },
+  votes: { type: Number, default: 0 }
+});
+
+const pollSchema = new mongoose.Schema({
+  question: { type: String, required: true },
+  choices: [choiceSchema],
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Poll = mongoose.model('Poll', pollSchema);
+
+// Poll routes
+
+// GET /api/polls - get all polls
+app.get('/api/polls', async (req, res) => {
+  try {
+    const polls = await Poll.find({});
+    res.json({ polls });
+  } catch (error) {
+    console.error('Error fetching polls:', error);
+    res.status(500).json({ message: 'Failed to fetch polls' });
+  }
+});
+
+// POST /api/add_poll - create new poll
+app.post('/api/add_poll', async (req, res) => {
+  const { question, choices } = req.body;
+
+  if (!question || !choices || !Array.isArray(choices) || choices.length < 2) {
+    return res.status(400).json({ message: 'Invalid poll data. Question and at least two choices are required.' });
+  }
+
+  try {
+    const poll = new Poll({
+      question,
+      choices: choices.map(choiceText => ({ text: choiceText, votes: 0 }))
+    });
+
+    await poll.save();
+
+    res.status(201).json({ message: 'Poll created successfully', poll });
+  } catch (error) {
+    console.error('Error creating poll:', error);
+    res.status(500).json({ message: 'Failed to create poll' });
+  }
+});
+
+// Your existing routes
+
 app.get('/', (req, res) => {
   res.send('CORS Configured!');
 });
