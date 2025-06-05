@@ -3,6 +3,9 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const http = require('http');
+const { Server } = require('socket.io');
+
 const connectDB = require('./config/db');
 const { verifyEmailConnection } = require('./services/emailService');
 const authRoutes = require('./routes/authRoutes');
@@ -11,11 +14,9 @@ const doctorRoutes = require('./routes/doctor');
 const reportRoutes = require('./routes/report');
 const auth = require('./middlewares/auth');
 const User = require('./models/User');
-const Call = require('./models/Call');
 const Appointment = require('./models/Appointment');
 const socketHandler = require('./sockets/callHandlers');
-const http = require('http');
-const { Server } = require('socket.io');
+const Poll = require('./models/Poll'); // Add this if Poll model is missing
 
 dotenv.config();
 
@@ -25,12 +26,12 @@ connectDB();
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://emp-health-frontend.vercel.app'  // Removed trailing slash here
+  'https://emp-health-frontend.vercel.app'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    console.log('CORS Origin:', origin);
+    // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -51,6 +52,7 @@ app.get('/', (req, res) => {
   res.send('CORS Configured!');
 });
 
+// API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', challengeRoutes);
 app.use('/api', doctorRoutes);
@@ -60,13 +62,16 @@ app.use('/api/protected', auth, (req, res) => {
   res.status(200).json({ message: 'You are logged in and can access this protected route.' });
 });
 
+// Setup Socket.IO with CORS allowed origins
 const io = new Server(server, {
   cors: {
-    origin: "https://emp-health-frontend.vercel.app",
-    methods: ["GET", "POST"]
+    origin: allowedOrigins,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
+// Initialize socket handlers with Socket.IO instance
 socketHandler(io);
 
 app.get('/health', (req, res) => {
@@ -80,6 +85,7 @@ app.post("/test", (req, res) => {
   });
 });
 
+// Poll creation endpoint
 app.post('/api/add_poll', async (req, res) => {
   try {
     const { question, choices } = req.body;
@@ -98,15 +104,17 @@ app.post('/api/add_poll', async (req, res) => {
   }
 });
 
+// Get all doctors
 app.get('/api/all-doctors', async (req, res) => {
   try {
-    const doctors = await User.find({ role: 'doctor' });
+    const doctors = await User.find({ role: 'doctor' }).select('name email role avatarSrc');
     res.status(200).json({ doctors });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch doctors', error: error.message });
   }
 });
 
+// Create appointment
 app.post('/api/appointments', async (req, res) => {
   try {
     const { day, date, time, type, doctorName, avatarSrc, userId } = req.body;
@@ -137,14 +145,11 @@ app.post('/api/appointments', async (req, res) => {
   }
 });
 
+// Get appointments
 app.get('/api/appointments', async (req, res) => {
   try {
     const { userId } = req.query;
-    let query = {};
-
-    if (userId) {
-      query.user = userId;
-    }
+    const query = userId ? { user: userId } : {};
 
     const appointments = await Appointment.find(query).populate('user', 'name email role');
 
@@ -162,4 +167,5 @@ server.listen(PORT, () => {
 
 process.on('unhandledRejection', (err) => {
   console.error('UNHANDLED REJECTION:', err);
+  // Optionally, shut down the server gracefully here
 });
