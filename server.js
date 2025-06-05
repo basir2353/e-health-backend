@@ -25,11 +25,12 @@ connectDB();
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://emp-health-frontend.vercel.app/'
+  'https://emp-health-frontend.vercel.app'  // Removed trailing slash here
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    console.log('CORS Origin:', origin);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -61,7 +62,7 @@ app.use('/api/protected', auth, (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://emp-health-frontend.vercel.app/",
+    origin: "https://emp-health-frontend.vercel.app",
     methods: ["GET", "POST"]
   }
 });
@@ -153,7 +154,7 @@ app.get('/api/appointments', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
