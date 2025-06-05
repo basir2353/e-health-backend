@@ -26,7 +26,7 @@ const report
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://e-health-xi.vercel.app'
+  'https://emp-health-frontend.vercel.app/'
 ];
 // Load environment variables
 dotenv.config();
