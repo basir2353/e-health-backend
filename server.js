@@ -25,7 +25,7 @@ const mongoose = require('mongoose'); // Add mongoose for schema/model
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://emp-health-frontend.vercel.app'
+  'https://emp-health-frontend.vercel.app/'
 ];
 
 // Load environment variables
